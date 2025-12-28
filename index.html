@@ -68,6 +68,26 @@
         <path d="M12 3v18M3 12h18M6.5 6.5l11 11M17.5 6.5l-11 11"/>
       </svg>
     );
+    // Novos Ícones
+    const UndoIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M9 14 4 9l5-5"/>
+        <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
+      </svg>
+    );
+
+    const RestartIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+    );
+
+    const ShuffleIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+      </svg>
+    );
 
     const createDeck = () => {
       const deck = [];
@@ -106,7 +126,7 @@
       const [moves, setMoves] = useState(0);
       const [time, setTime] = useState(0);
       const [isRunning, setIsRunning] = useState(false);
-
+      const [history, setHistory] = useState([]);
       useEffect(() => {
         let interval;
         if (isRunning) {
@@ -126,7 +146,7 @@
       const startGame = (diff) => {
         setDifficulty(diff);
         const deck = shuffleDeck(createDeck());
-        
+        setHistory([]);
         const newTableau = [[], [], [], [], [], [], []];
         let deckIndex = 0;
         
@@ -150,18 +170,24 @@
         setTime(0);
         setIsRunning(true);
         setGameState('playing');
+        saveHistory();
       };
 
       const drawFromStock = () => {
+        saveHistory();
         const drawCount = DIFFICULTIES[difficulty].draw;
         
         if (stock.length === 0) {
-          setStock([...waste].reverse());
+          // Ao reciclar o lixo para o estoque, vira as cartas para baixo (faceUp: false)
+          const newStock = [...waste].reverse().map(card => ({ ...card, faceUp: false }));
+          setStock(newStock);
           setWaste([]);
           return;
         }
 
-        const drawn = stock.slice(0, Math.min(drawCount, stock.length));
+        // Ao puxar cartas, vira elas para cima (faceUp: true)
+        const drawn = stock.slice(0, Math.min(drawCount, stock.length)).map(card => ({ ...card, faceUp: true }));
+        
         setWaste([...waste, ...drawn]);
         setStock(stock.slice(drawn.length));
         setMoves(m => m + 1);
@@ -191,6 +217,7 @@
         if (!canPlaceOnFoundation(card, foundation)) {
           return false;
         }
+        saveHistory();
 
         const newFoundations = [...foundations];
         newFoundations[foundationIndex] = [...newFoundations[foundationIndex], card];
@@ -226,6 +253,7 @@
             if (location.type === 'tableau') {
               const column = tableau[location.column];
               if (canPlaceOnTableau(selectedCard.card, column)) {
+                saveHistory();
                 const newTableau = [...tableau];
                 
                 if (selectedCard.location.type === 'waste') {
@@ -265,6 +293,7 @@
 
       const handleEmptyTableauClick = (colIndex) => {
         if (selectedCard && selectedCard.card.rank === 'K') {
+          saveHistory();
           const newTableau = [...tableau];
           
           if (selectedCard.location.type === 'waste') {
@@ -301,7 +330,7 @@
           return PHOTOS[suitMap[card.suit]];
         };
 
-        const shouldShowPhoto = card.faceUp && (card.rank === 'J' || card.rank === 'Q' || card.rank === 'K');
+        const shouldShowPhoto = card.faceUp;
         const photo = shouldShowPhoto ? getCardPhoto() : null;
         
         return (
@@ -435,6 +464,54 @@
       }
 
       const foundationSuits = ['♥', '♦', '♣', '♠'];
+      // 1. Função para salvar o estado atual antes de fazer um movimento
+      const saveHistory = () => {
+        setHistory(prev => [...prev, {
+          tableau: JSON.parse(JSON.stringify(tableau)), // Cópia profunda das colunas
+          foundations: JSON.parse(JSON.stringify(foundations)),
+          stock: [...stock],
+          waste: [...waste],
+          score,
+          moves
+        }]);
+      };
+
+      // 2. Função de Voltar Jogada
+      const undoMove = () => {
+        if (history.length === 0) return;
+        
+        const previousState = history[history.length - 1];
+        const newHistory = history.slice(0, -1);
+
+        setTableau(previousState.tableau);
+        setFoundations(previousState.foundations);
+        setStock(previousState.stock);
+        setWaste(previousState.waste);
+        setScore(previousState.score);
+        setMoves(previousState.moves);
+        setHistory(newHistory);
+      };
+
+      // 3. Função de Reiniciar a Partida (Volta para o estado inicial salvo no histórico)
+      const restartGame = () => {
+        if (history.length === 0) return;
+        
+        // Pega o primeiro estado salvo (o início do jogo)
+        const initialState = history[0];
+        
+        setTableau(initialState.tableau);
+        setFoundations(initialState.foundations);
+        setStock(initialState.stock);
+        setWaste(initialState.waste);
+        setScore(initialState.score);
+        setMoves(0);
+        setHistory([]); // Limpa o histórico pois voltamos ao início
+      };
+
+      // 4. Função Novo Jogo (Reembaralhar)
+      const handleNewGame = () => {
+        startGame(difficulty); // Apenas reinicia com a mesma dificuldade
+      };
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-rose-300 via-pink-300 to-purple-400 p-3 overflow-x-hidden">
@@ -460,10 +537,27 @@
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => setGameState('menu')}
-                  className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all transform hover:scale-105 shadow-md"
-                >
+                <div className="flex gap-2">
+                  <button onClick={undoMove} disabled={history.length === 0} className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-400 hover:bg-blue-500'}`} title="Desfazer">
+                    <UndoIcon />
+                  </button>
+
+                  <button onClick={restartGame} disabled={history.length === 0} className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-orange-400 hover:bg-orange-500'}`} title="Reiniciar Partida">
+                    <RestartIcon />
+                  </button>
+
+                  <button onClick={handleNewGame} className="p-2 rounded-xl bg-purple-400 hover:bg-purple-500 text-white shadow-md transition-transform hover:scale-105" title="Novo Jogo">
+                    <ShuffleIcon />
+                  </button>
+
+                  <button
+                    onClick={() => setGameState('menu')}
+                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all transform hover:scale-105 shadow-md"
+                  >
+                    <RotateCcw />
+                    <span className="font-semibold hidden sm:inline">Menu</span>
+                  </button>
+                </div>
                   <RotateCcw />
                   <span className="font-semibold">Menu</span>
                 </button>
