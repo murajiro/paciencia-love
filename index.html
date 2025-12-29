@@ -50,8 +50,8 @@
     }
     
     .fade-in {
-      tion: fadeIn 0.3s ease;
-    }
+  animation: fadeIn 0.3s ease;
+}
     
     @keyframes slideUp {
       from { transform: translateY(20px); opacity: 0; }
@@ -59,8 +59,8 @@
     }
     
     .slide-up {
-      tion: slideUp 0.4s ease;
-    }
+  animation: slideUp 0.4s ease;
+}
   </style>
 </head>
 <body>
@@ -188,7 +188,7 @@
       const [validDropZones, setValidDropZones] = useState([]);
       const [draggedCard, setDraggedCard] = useState(null);
       const [lastClickTime, setLastClickTime] = useState(0);
-      const [tingCard, settingCard] = useState(null);
+      const [animatingCard, setAnimatingCard] = useState(null);
 
       useEffect(() => {
         let interval;
@@ -325,8 +325,8 @@
         }
         
         saveHistory();
-        settingCard(card.id);
-        setTimeout(() => settingCard(null), 300);
+        setAnimatingCard(card.id);
+        setTimeout(() => setAnimatingCard(null), 300);
 
         const newFoundations = [...foundations];
         newFoundations[foundationIndex] = [...newFoundations[foundationIndex], card];
@@ -402,8 +402,8 @@
         if (!canPlaceOnTableau(card, column)) return;
         
         saveHistory();
-        settingCard(card.id);
-        setTimeout(() => settingCard(null), 300);
+        setAnimatingCard(card.id);
+        setTimeout(() => setAnimatingCard(null), 300);
         
         const newTableau = [...tableau];
         
@@ -546,7 +546,7 @@
 
       const Card = ({ card, onClick, isSelected, onDragStart, style = {} }) => {
         const isRed = card.color === 'red';
-        const isting = tingCard === card.id;
+        const isAnimating = animatingCard === card.id;
         
         const getCardPhoto = () => {
           if (card.rank === 'J') return PHOTOS.jack;
@@ -573,7 +573,7 @@
                 ? `bg-white ${isRed ? 'text-red-500' : 'text-gray-800'} ${
                     isSelected ? 'border-4 border-pink-400 shadow-xl scale-105 ring-2 ring-pink-300' : 'border-2 border-gray-300'
                   }`
-                : 'bg-gradient-to-br from-purple-600 via-pink-600 to--600 border-2 border-pink-400'
+                : 'bg-gradient-to-br from-purple-600 via-pink-600 to-rose-600 border-2 border-pink-400'
             }`}
             style={style}
           >
@@ -845,13 +845,13 @@
                     />
                     {column.map((card, cardIndex) => (
                       <div
-                        key={card.id}
-                        style={{ marginTop: cardIndex === 0 ? '-7.25rem' : '-5.25rem' }}
-                        className={cardIndex === 0 ? 'tableau-card-offset-first' : 'tableau-card-offset'}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
-                        className={cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''}
-                      >
+                       <div
+                          key={card.id}
+                          style={{ marginTop: cardIndex === 0 ? '-7.25rem' : '-5.25rem' }}
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+                          className={`${cardIndex === 0 ? 'tableau-card-offset-first' : 'tableau-card-offset'} ${cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''}`}
+                        >
                         <Card
                           card={card}
                           onClick={() => handleCardClick(card, { type: 'tableau', column: colIndex })}
