@@ -8,12 +8,51 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(236, 72, 153, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.8); }
+    }
+    
+    .valid-drop {
+      animation: pulse-glow 1.5s ease-in-out infinite;
+      border-color: #ec4899 !important;
+    }
+    
+    @keyframes card-move {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .card-moving {
+      animation: card-move 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .slide-up {
+      animation: slideUp 0.4s ease;
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     const SUITS = ['♥', '♦', '♣', '♠'];
     const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -23,7 +62,6 @@
       hard: { name: 'Difícil', draw: 3, desc: 'Para mestres da paciência' }
     };
 
-    // Fotos personalizadas
     const PHOTOS = {
       jack: './images/jack.png',
       queen: './images/queen.png',
@@ -34,7 +72,6 @@
       spades: './images/spades.png'
     };
 
-    // Ícones SVG inline
     const RotateCcw = () => (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M1 4v6h6M23 20v-6h-6"/>
@@ -68,7 +105,7 @@
         <path d="M12 3v18M3 12h18M6.5 6.5l11 11M17.5 6.5l-11 11"/>
       </svg>
     );
-    // Novos Ícones
+
     const UndoIcon = () => (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M9 14 4 9l5-5"/>
@@ -86,6 +123,12 @@
     const ShuffleIcon = () => (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+      </svg>
+    );
+
+    const RefreshIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
       </svg>
     );
 
@@ -127,6 +170,11 @@
       const [time, setTime] = useState(0);
       const [isRunning, setIsRunning] = useState(false);
       const [history, setHistory] = useState([]);
+      const [validDropZones, setValidDropZones] = useState([]);
+      const [draggedCard, setDraggedCard] = useState(null);
+      const [lastClickTime, setLastClickTime] = useState(0);
+      const [animatingCard, setAnimatingCard] = useState(null);
+
       useEffect(() => {
         let interval;
         if (isRunning) {
@@ -143,10 +191,22 @@
         return `${mins}:${secs.toString().padStart(2, '0')}`;
       };
 
+      const saveHistory = () => {
+        setHistory(prev => [...prev, {
+          tableau: JSON.parse(JSON.stringify(tableau)),
+          foundations: JSON.parse(JSON.stringify(foundations)),
+          stock: [...stock],
+          waste: [...waste],
+          score,
+          moves
+        }]);
+      };
+
       const startGame = (diff) => {
         setDifficulty(diff);
         const deck = shuffleDeck(createDeck());
         setHistory([]);
+        
         const newTableau = [[], [], [], [], [], [], []];
         let deckIndex = 0;
         
@@ -170,7 +230,7 @@
         setTime(0);
         setIsRunning(true);
         setGameState('playing');
-        saveHistory();
+        setValidDropZones([]);
       };
 
       const drawFromStock = () => {
@@ -178,18 +238,29 @@
         const drawCount = DIFFICULTIES[difficulty].draw;
         
         if (stock.length === 0) {
-          // Ao reciclar o lixo para o estoque, vira as cartas para baixo (faceUp: false)
           const newStock = [...waste].reverse().map(card => ({ ...card, faceUp: false }));
           setStock(newStock);
           setWaste([]);
           return;
         }
 
-        // Ao puxar cartas, vira elas para cima (faceUp: true)
         const drawn = stock.slice(0, Math.min(drawCount, stock.length)).map(card => ({ ...card, faceUp: true }));
         
         setWaste([...waste, ...drawn]);
         setStock(stock.slice(drawn.length));
+        setMoves(m => m + 1);
+      };
+
+      const recycleWaste = () => {
+        if (waste.length === 0) return;
+        
+        saveHistory();
+        const shuffledWaste = shuffleDeck([...waste]);
+        const newStock = shuffledWaste.map(card => ({ ...card, faceUp: false }));
+        
+        setStock([...stock, ...newStock]);
+        setWaste([]);
+        setScore(s => Math.max(0, s - 15));
         setMoves(m => m + 1);
       };
 
@@ -209,6 +280,26 @@
         return topCard.faceUp && card.color !== topCard.color && card.value === topCard.value - 1;
       };
 
+      const calculateValidDropZones = (card, location) => {
+        const zones = [];
+        
+        // Check foundations
+        foundations.forEach((foundation, idx) => {
+          if (canPlaceOnFoundation(card, foundation)) {
+            zones.push({ type: 'foundation', index: idx });
+          }
+        });
+        
+        // Check tableau
+        tableau.forEach((column, idx) => {
+          if (canPlaceOnTableau(card, column)) {
+            zones.push({ type: 'tableau', index: idx });
+          }
+        });
+        
+        return zones;
+      };
+
       const moveToFoundation = (card, fromLocation) => {
         const suitToFoundation = { '♥': 0, '♦': 1, '♣': 2, '♠': 3 };
         const foundationIndex = suitToFoundation[card.suit];
@@ -217,7 +308,10 @@
         if (!canPlaceOnFoundation(card, foundation)) {
           return false;
         }
+        
         saveHistory();
+        setAnimatingCard(card.id);
+        setTimeout(() => setAnimatingCard(null), 300);
 
         const newFoundations = [...foundations];
         newFoundations[foundationIndex] = [...newFoundations[foundationIndex], card];
@@ -237,6 +331,7 @@
         setScore(s => s + 10);
         setMoves(m => m + 1);
         setSelectedCard(null);
+        setValidDropZones([]);
 
         if (newFoundations.every(f => f.length === 13)) {
           setIsRunning(false);
@@ -248,41 +343,75 @@
       const handleCardClick = (card, location) => {
         if (!card.faceUp) return;
 
-        if (selectedCard) {
-          if (selectedCard.location.type === 'waste' || selectedCard.location.type === 'tableau') {
-            if (location.type === 'tableau') {
-              const column = tableau[location.column];
-              if (canPlaceOnTableau(selectedCard.card, column)) {
-                saveHistory();
-                const newTableau = [...tableau];
-                
-                if (selectedCard.location.type === 'waste') {
-                  newTableau[location.column] = [...newTableau[location.column], { ...selectedCard.card, faceUp: true }];
-                  setWaste(waste.slice(0, -1));
-                } else {
-                  const fromCol = selectedCard.location.column;
-                  const cardIndex = newTableau[fromCol].findIndex(c => c.id === selectedCard.card.id);
-                  const cardsToMove = newTableau[fromCol].slice(cardIndex);
-                  newTableau[location.column] = [...newTableau[location.column], ...cardsToMove];
-                  newTableau[fromCol] = newTableau[fromCol].slice(0, cardIndex);
-                  
-                  if (newTableau[fromCol].length > 0) {
-                    newTableau[fromCol][newTableau[fromCol].length - 1].faceUp = true;
-                  }
-                }
-                
-                setTableau(newTableau);
-                setScore(s => s + 5);
-                setMoves(m => m + 1);
-                setSelectedCard(null);
-                return;
+        const currentTime = Date.now();
+        const timeDiff = currentTime - lastClickTime;
+        
+        // Double click detection (< 300ms)
+        if (timeDiff < 300 && selectedCard?.card.id === card.id) {
+          // Try auto-move to foundation
+          const moved = moveToFoundation(card, location);
+          if (!moved) {
+            // If can't move to foundation, try tableau
+            const validZones = calculateValidDropZones(card, location);
+            if (validZones.length > 0) {
+              const firstTableauZone = validZones.find(z => z.type === 'tableau');
+              if (firstTableauZone) {
+                handleTableauMove(card, location, firstTableauZone.index);
               }
             }
           }
+          setLastClickTime(0);
+          return;
+        }
+        
+        setLastClickTime(currentTime);
+
+        if (selectedCard) {
+          if (selectedCard.location.type === 'waste' || selectedCard.location.type === 'tableau') {
+            if (location.type === 'tableau') {
+              handleTableauMove(selectedCard.card, selectedCard.location, location.column);
+              return;
+            }
+          }
           setSelectedCard(null);
+          setValidDropZones([]);
         } else {
           setSelectedCard({ card, location });
+          const zones = calculateValidDropZones(card, location);
+          setValidDropZones(zones);
         }
+      };
+
+      const handleTableauMove = (card, fromLocation, toColumn) => {
+        const column = tableau[toColumn];
+        if (!canPlaceOnTableau(card, column)) return;
+        
+        saveHistory();
+        setAnimatingCard(card.id);
+        setTimeout(() => setAnimatingCard(null), 300);
+        
+        const newTableau = [...tableau];
+        
+        if (fromLocation.type === 'waste') {
+          newTableau[toColumn] = [...newTableau[toColumn], { ...card, faceUp: true }];
+          setWaste(waste.slice(0, -1));
+        } else {
+          const fromCol = fromLocation.column;
+          const cardIndex = newTableau[fromCol].findIndex(c => c.id === card.id);
+          const cardsToMove = newTableau[fromCol].slice(cardIndex);
+          newTableau[toColumn] = [...newTableau[toColumn], ...cardsToMove];
+          newTableau[fromCol] = newTableau[fromCol].slice(0, cardIndex);
+          
+          if (newTableau[fromCol].length > 0) {
+            newTableau[fromCol][newTableau[fromCol].length - 1].faceUp = true;
+          }
+        }
+        
+        setTableau(newTableau);
+        setScore(s => s + 5);
+        setMoves(m => m + 1);
+        setSelectedCard(null);
+        setValidDropZones([]);
       };
 
       const handleFoundationClick = (index) => {
@@ -294,6 +423,9 @@
       const handleEmptyTableauClick = (colIndex) => {
         if (selectedCard && selectedCard.card.rank === 'K') {
           saveHistory();
+          setAnimatingCard(selectedCard.card.id);
+          setTimeout(() => setAnimatingCard(null), 300);
+          
           const newTableau = [...tableau];
           
           if (selectedCard.location.type === 'waste') {
@@ -315,11 +447,91 @@
           setScore(s => s + 5);
           setMoves(m => m + 1);
           setSelectedCard(null);
+          setValidDropZones([]);
         }
       };
 
-      const Card = ({ card, onClick, isSelected, style = {} }) => {
+      // Drag and Drop handlers
+      const handleDragStart = (e, card, location) => {
+        if (!card.faceUp) {
+          e.preventDefault();
+          return;
+        }
+        setDraggedCard({ card, location });
+        const zones = calculateValidDropZones(card, location);
+        setValidDropZones(zones);
+        e.dataTransfer.effectAllowed = 'move';
+      };
+
+      const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      };
+
+      const handleDrop = (e, dropLocation) => {
+        e.preventDefault();
+        if (!draggedCard) return;
+
+        if (dropLocation.type === 'foundation') {
+          moveToFoundation(draggedCard.card, draggedCard.location);
+        } else if (dropLocation.type === 'tableau') {
+          handleTableauMove(draggedCard.card, draggedCard.location, dropLocation.column);
+        }
+
+        setDraggedCard(null);
+        setValidDropZones([]);
+      };
+
+      const handleDragEnd = () => {
+        setDraggedCard(null);
+        setValidDropZones([]);
+      };
+
+      const undoMove = () => {
+        if (history.length === 0) return;
+        
+        const previousState = history[history.length - 1];
+        const newHistory = history.slice(0, -1);
+
+        setTableau(previousState.tableau);
+        setFoundations(previousState.foundations);
+        setStock(previousState.stock);
+        setWaste(previousState.waste);
+        setScore(previousState.score);
+        setMoves(previousState.moves);
+        setHistory(newHistory);
+        setValidDropZones([]);
+        setSelectedCard(null);
+      };
+
+      const restartGame = () => {
+        if (history.length === 0) return;
+        
+        const initialState = history[0];
+        
+        setTableau(initialState.tableau);
+        setFoundations(initialState.foundations);
+        setStock(initialState.stock);
+        setWaste(initialState.waste);
+        setScore(initialState.score);
+        setMoves(0);
+        setTime(0);
+        setHistory([]);
+        setValidDropZones([]);
+        setSelectedCard(null);
+      };
+
+      const handleNewGame = () => {
+        startGame(difficulty);
+      };
+
+      const isValidDropZone = (type, index) => {
+        return validDropZones.some(zone => zone.type === type && zone.index === index);
+      };
+
+      const Card = ({ card, onClick, isSelected, onDragStart, style = {} }) => {
         const isRed = card.color === 'red';
+        const isAnimating = animatingCard === card.id;
         
         const getCardPhoto = () => {
           if (card.rank === 'J') return PHOTOS.jack;
@@ -336,7 +548,12 @@
         return (
           <div
             onClick={onClick}
+            draggable={card.faceUp}
+            onDragStart={onDragStart}
+            onDragEnd={handleDragEnd}
             className={`relative w-20 h-28 rounded-lg flex flex-col items-center justify-center text-sm font-bold cursor-pointer transition-all shadow-md overflow-hidden ${
+              isAnimating ? 'card-moving' : ''
+            } ${
               card.faceUp
                 ? `bg-white ${isRed ? 'text-red-500' : 'text-gray-800'} ${
                     isSelected ? 'border-4 border-pink-400 shadow-xl scale-105 ring-2 ring-pink-300' : 'border-2 border-gray-300'
@@ -387,7 +604,7 @@
               <div className="absolute bottom-20 right-32 text-6xl opacity-10">♣</div>
             </div>
             
-            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full relative z-10">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full relative z-10 fade-in">
               <div className="text-center mb-8">
                 <Sparkles className="w-12 h-12 mx-auto mb-3 text-pink-500" />
                 <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-500 bg-clip-text text-transparent">
@@ -419,7 +636,7 @@
               </div>
               
               <div className="mt-6 text-center text-xs text-gray-400">
-                ♥ Toque nas cartas para jogar ♥
+                ♥ Toque ou arraste as cartas para jogar ♥
               </div>
             </div>
           </div>
@@ -429,17 +646,222 @@
       if (gameState === 'won') {
         return (
           <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center fade-in">
               <Trophy className="w-28 h-28 mx-auto mb-4 text-yellow-500 animate-bounce" />
               <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
                 Parabéns!
               </h1>
-              <p className="text-3xl mb-2">🎉</p>
-              <p className="text-xl mb-6 text-gray-600 font-semibold">Alanna, você arrasou!</p>
+              <p className="text-3xl mb-4">🎉</p>
+              
+              <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-6 mb-6">
+                <p className="text-lg leading-relaxed text-gray-700 mb-4">
+                  <span className="font-bold text-pink-600">Parabéns, minha princesa!</span> Eu sabia que ia conseguir. 
+                  <span className="text-rose-600 font-semibold"> Eu te amo mais do que tudo.</span> Você é muito forte, muito mais do que imagina. 
+                  Tudo isso vai passar, eu estou aqui pra te ajudar, aqui por você. 
+                  <span className="text-purple-600 font-semibold"> Eu te amo, minha princesa, minha rosa azul, minha noiva, minha Alanna.</span>
+                </p>
+              </div>
               
               <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-5 mb-6 space-y-3">
                 <div className="text-lg">
-                  <span className="font-semibold text-gray-700">Pontuação:</span>{' '}
+                  <span className="font-semibold text-gray-700">Movimentos:</span>{' '}
+                  <span className="text-purple-600 font-bold text-xl">{moves}</span>
+                </div>
+                <div className="text-lg">
+                  <span className="font-semibold text-gray-700">Tempo:</span>{' '}
+                  <span className="text-rose-600 font-bold text-xl">{formatTime(time)}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setGameState('menu')}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg"
+              >
+                Jogar Novamente
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      const foundationSuits = ['♥', '♦', '♣', '♠'];
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-rose-300 via-pink-300 to-purple-400 p-3 overflow-x-hidden">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white bg-opacity-90 backdrop-blur rounded-2xl shadow-lg p-4 mb-4 slide-up">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                  <span className="font-bold text-lg text-gray-800">Alanna</span>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <div className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-lg">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-blue-600">{formatTime(time)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-lg">
+                    <Trophy className="w-4 h-4 text-yellow-600" />
+                    <span className="font-semibold text-yellow-600">{score}</span>
+                  </div>
+                  <div className="bg-purple-50 px-3 py-1 rounded-lg">
+                    <span className="font-semibold text-purple-600">{moves}</span>
+                  </div>
+                </div>
+               
+                <div className="flex gap-2">
+                  <button 
+                    onClick={undoMove} 
+                    disabled={history.length === 0} 
+                    className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-400 hover:bg-blue-500'}`} 
+                    title="Desfazer"
+                  >
+                    <UndoIcon />
+                  </button>
+                  <button 
+                    onClick={restartGame} 
+                    disabled={history.length === 0} 
+                    className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-orange-400 hover:bg-orange-500'}`} 
+                    title="Reiniciar Partida"
+                  >
+                    <RestartIcon />
+                  </button>
+                  <button 
+                    onClick={handleNewGame} 
+                    className="p-2 rounded-xl bg-purple-400 hover:bg-purple-500 text-white shadow-md transition-transform hover:scale-105" 
+                    title="Novo Jogo"
+                  >
+                    <ShuffleIcon />
+                  </button>
+                  <button
+                    onClick={() => setGameState('menu')}
+                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all transform hover:scale-105 shadow-md"
+                  >
+                    <RotateCcw />
+                    <span className="font-semibold hidden sm:inline">Menu</span>
+                  </button>
+                </div> 
+              </div>
+            </div>
+
+            <div className="bg-white bg-opacity-80 backdrop-blur rounded-2xl shadow-lg p-4 mb-4 slide-up" style={{animationDelay: '0.1s'}}>
+              <div className="flex justify-between flex-wrap gap-3">
+                <div className="flex gap-3">
+                  <div
+                    onClick={drawFromStock}
+                    className="w-20 h-28 rounded-lg border-3 border-pink-400 bg-gradient-to-br from-purple-600 via-pink-600 to-rose-600 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform shadow-md"
+                  >
+                    {stock.length > 0 && (
+                      <div className="text-white font-bold text-lg">{stock.length}</div>
+                    )}
+                  </div>
+                  
+                  <div 
+                    className="w-20 h-28 rounded-lg border-2 border-dashed border-pink-300 bg-pink-50 flex items-center justify-center"
+                    onDragOver={handleDragOver}
+                  >
+                    {waste.length > 0 && (
+                      <Card
+                        card={waste[waste.length - 1]}
+                        onClick={() => handleCardClick(waste[waste.length - 1], { type: 'waste' })}
+                        onDragStart={(e) => handleDragStart(e, waste[waste.length - 1], { type: 'waste' })}
+                        isSelected={selectedCard?.card.id === waste[waste.length - 1].id}
+                      />
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={recycleWaste}
+                    disabled={waste.length === 0}
+                    className={`px-3 py-2 rounded-lg text-white font-semibold shadow-md transition-all hover:scale-105 flex items-center gap-2 ${
+                      waste.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-500 hover:to-cyan-600'
+                    }`}
+                    title="Reembaralhar lixo (-15 pontos)"
+                  >
+                    <RefreshIcon />
+                    <span className="text-xs hidden sm:inline">Reembaralhar</span>
+                  </button>
+                </div>
+
+                <div className="flex gap-3">
+                  {foundations.map((foundation, i) => (
+                    <div
+                      key={i}
+                      onClick={() => handleFoundationClick(i)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, { type: 'foundation', index: i })}
+                      className={`w-20 h-28 rounded-lg border-2 border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 flex flex-col items-center justify-center cursor-pointer hover:border-pink-400 transition-all shadow-sm ${
+                        isValidDropZone('foundation', i) ? 'valid-drop' : ''
+                      }`}
+                    >
+                      {foundation.length > 0 ? (
+                        <Card 
+                          card={foundation[foundation.length - 1]} 
+                          onClick={() => {}}
+                          onDragStart={(e) => e.preventDefault()}
+                        />
+                      ) : (
+                        <div className={`text-4xl opacity-20 ${
+                          foundationSuits[i] === '♥' || foundationSuits[i] === '♦' 
+                            ? 'text-red-400' 
+                            : 'text-gray-600'
+                        }`}>
+                          {foundationSuits[i]}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white bg-opacity-80 backdrop-blur rounded-2xl shadow-lg p-4 slide-up" style={{animationDelay: '0.2s'}}>
+              <div className="flex gap-2 overflow-x-auto pb-4">
+                {tableau.map((column, colIndex) => (
+                  <div key={colIndex} className="flex-shrink-0" style={{ width: '5rem' }}>
+                    <div
+                      onClick={() => column.length === 0 && handleEmptyTableauClick(colIndex)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+                      className={`w-20 h-28 rounded-lg border-2 border-dashed border-pink-200 bg-pink-50 mb-1 cursor-pointer hover:border-pink-300 transition-colors ${
+                        column.length === 0 && isValidDropZone('tableau', colIndex) ? 'valid-drop' : ''
+                      }`}
+                    />
+                    {column.map((card, cardIndex) => (
+                      <div
+                        key={card.id}
+                        style={{ marginTop: cardIndex === 0 ? '-7.25rem' : '-5.25rem' }}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+                        className={cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''}
+                      >
+                        <Card
+                          card={card}
+                          onClick={() => handleCardClick(card, { type: 'tableau', column: colIndex })}
+                          onDragStart={(e) => handleDragStart(e, card, { type: 'tableau', column: colIndex })}
+                          isSelected={selectedCard?.card.id === card.id}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="mt-4 text-center text-sm text-white bg-white bg-opacity-20 backdrop-blur rounded-xl p-3 slide-up" style={{animationDelay: '0.3s'}}>
+              <p className="font-semibold">💡 Dica: Clique duas vezes em uma carta para movimento automático!</p>
+              <p className="text-xs mt-1 opacity-90">Arraste as cartas ou clique para selecionar e mover</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<SolitaireGame />, document.getElementById('root'));
+  </script>
+</body>
+</html>old text-gray-700">Pontuação:</span>{' '}
                   <span className="text-pink-600 font-bold text-xl">{score}</span>
                 </div>
                 <div className="text-lg">
@@ -464,66 +886,18 @@
       }
 
       const foundationSuits = ['♥', '♦', '♣', '♠'];
-      // 1. Função para salvar o estado atual antes de fazer um movimento
-      const saveHistory = () => {
-        setHistory(prev => [...prev, {
-          tableau: JSON.parse(JSON.stringify(tableau)), // Cópia profunda das colunas
-          foundations: JSON.parse(JSON.stringify(foundations)),
-          stock: [...stock],
-          waste: [...waste],
-          score,
-          moves
-        }]);
-      };
-
-      // 2. Função de Voltar Jogada
-      const undoMove = () => {
-        if (history.length === 0) return;
-        
-        const previousState = history[history.length - 1];
-        const newHistory = history.slice(0, -1);
-
-        setTableau(previousState.tableau);
-        setFoundations(previousState.foundations);
-        setStock(previousState.stock);
-        setWaste(previousState.waste);
-        setScore(previousState.score);
-        setMoves(previousState.moves);
-        setHistory(newHistory);
-      };
-
-      // 3. Função de Reiniciar a Partida (Volta para o estado inicial salvo no histórico)
-      const restartGame = () => {
-        if (history.length === 0) return;
-        
-        // Pega o primeiro estado salvo (o início do jogo)
-        const initialState = history[0];
-        
-        setTableau(initialState.tableau);
-        setFoundations(initialState.foundations);
-        setStock(initialState.stock);
-        setWaste(initialState.waste);
-        setScore(initialState.score);
-        setMoves(0);
-        setHistory([]); // Limpa o histórico pois voltamos ao início
-      };
-
-      // 4. Função Novo Jogo (Reembaralhar)
-      const handleNewGame = () => {
-        startGame(difficulty); // Apenas reinicia com a mesma dificuldade
-      };
 
       return (
         <div className="min-h-screen bg-gradient-to-br from-rose-300 via-pink-300 to-purple-400 p-3 overflow-x-hidden">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white bg-opacity-90 backdrop-blur rounded-2xl shadow-lg p-4 mb-4">
-              <div className="flex justify-between items-center">
+            <div className="bg-white bg-opacity-90 backdrop-blur rounded-2xl shadow-lg p-4 mb-4 slide-up">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
                   <span className="font-bold text-lg text-gray-800">Alanna</span>
                 </div>
                 
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 text-sm flex-wrap">
                   <div className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-lg">
                     <Clock className="w-4 h-4 text-blue-600" />
                     <span className="font-semibold text-blue-600">{formatTime(time)}</span>
@@ -533,17 +907,32 @@
                     <span className="font-semibold text-yellow-600">{score}</span>
                   </div>
                   <div className="bg-purple-50 px-3 py-1 rounded-lg">
-                    <span className="font-semibold text-purple-600">{moves} movimentos</span>
+                    <span className="font-semibold text-purple-600">{moves}</span>
                   </div>
                 </div>
-               <div className="flex gap-2">
-                  <button onClick={undoMove} disabled={history.length === 0} className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-400 hover:bg-blue-500'}`} title="Desfazer">
+               
+                <div className="flex gap-2">
+                  <button 
+                    onClick={undoMove} 
+                    disabled={history.length === 0} 
+                    className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-400 hover:bg-blue-500'}`} 
+                    title="Desfazer"
+                  >
                     <UndoIcon />
                   </button>
-                  <button onClick={restartGame} disabled={history.length === 0} className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-orange-400 hover:bg-orange-500'}`} title="Reiniciar Partida">
+                  <button 
+                    onClick={restartGame} 
+                    disabled={history.length === 0} 
+                    className={`p-2 rounded-xl text-white shadow-md transition-transform hover:scale-105 ${history.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-orange-400 hover:bg-orange-500'}`} 
+                    title="Reiniciar Partida"
+                  >
                     <RestartIcon />
                   </button>
-                  <button onClick={handleNewGame} className="p-2 rounded-xl bg-purple-400 hover:bg-purple-500 text-white shadow-md transition-transform hover:scale-105" title="Novo Jogo">
+                  <button 
+                    onClick={handleNewGame} 
+                    className="p-2 rounded-xl bg-purple-400 hover:bg-purple-500 text-white shadow-md transition-transform hover:scale-105" 
+                    title="Novo Jogo"
+                  >
                     <ShuffleIcon />
                   </button>
                   <button
@@ -557,8 +946,8 @@
               </div>
             </div>
 
-            <div className="bg-white bg-opacity-80 backdrop-blur rounded-2xl shadow-lg p-4 mb-4">
-              <div className="flex justify-between">
+            <div className="bg-white bg-opacity-80 backdrop-blur rounded-2xl shadow-lg p-4 mb-4 slide-up" style={{animationDelay: '0.1s'}}>
+              <div className="flex justify-between flex-wrap gap-3">
                 <div className="flex gap-3">
                   <div
                     onClick={drawFromStock}
@@ -569,15 +958,31 @@
                     )}
                   </div>
                   
-                  <div className="w-20 h-28 rounded-lg border-2 border-dashed border-pink-300 bg-pink-50 flex items-center justify-center">
+                  <div 
+                    className="w-20 h-28 rounded-lg border-2 border-dashed border-pink-300 bg-pink-50 flex items-center justify-center"
+                    onDragOver={handleDragOver}
+                  >
                     {waste.length > 0 && (
                       <Card
                         card={waste[waste.length - 1]}
                         onClick={() => handleCardClick(waste[waste.length - 1], { type: 'waste' })}
+                        onDragStart={(e) => handleDragStart(e, waste[waste.length - 1], { type: 'waste' })}
                         isSelected={selectedCard?.card.id === waste[waste.length - 1].id}
                       />
                     )}
                   </div>
+                  
+                  <button
+                    onClick={recycleWaste}
+                    disabled={waste.length === 0}
+                    className={`px-3 py-2 rounded-lg text-white font-semibold shadow-md transition-all hover:scale-105 flex items-center gap-2 ${
+                      waste.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-500 hover:to-cyan-600'
+                    }`}
+                    title="Reembaralhar lixo (-15 pontos)"
+                  >
+                    <RefreshIcon />
+                    <span className="text-xs hidden sm:inline">Reembaralhar</span>
+                  </button>
                 </div>
 
                 <div className="flex gap-3">
@@ -585,10 +990,18 @@
                     <div
                       key={i}
                       onClick={() => handleFoundationClick(i)}
-                      className="w-20 h-28 rounded-lg border-2 border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 flex flex-col items-center justify-center cursor-pointer hover:border-pink-400 transition-all shadow-sm"
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, { type: 'foundation', index: i })}
+                      className={`w-20 h-28 rounded-lg border-2 border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 flex flex-col items-center justify-center cursor-pointer hover:border-pink-400 transition-all shadow-sm ${
+                        isValidDropZone('foundation', i) ? 'valid-drop' : ''
+                      }`}
                     >
                       {foundation.length > 0 ? (
-                        <Card card={foundation[foundation.length - 1]} onClick={() => {}} />
+                        <Card 
+                          card={foundation[foundation.length - 1]} 
+                          onClick={() => {}}
+                          onDragStart={(e) => e.preventDefault()}
+                        />
                       ) : (
                         <div className={`text-4xl opacity-20 ${
                           foundationSuits[i] === '♥' || foundationSuits[i] === '♦' 
@@ -604,22 +1017,30 @@
               </div>
             </div>
 
-            <div className="bg-white bg-opacity-80 backdrop-blur rounded-2xl shadow-lg p-4">
+            <div className="bg-white bg-opacity-80 backdrop-blur rounded-2xl shadow-lg p-4 slide-up" style={{animationDelay: '0.2s'}}>
               <div className="flex gap-2 overflow-x-auto pb-4">
                 {tableau.map((column, colIndex) => (
                   <div key={colIndex} className="flex-shrink-0" style={{ width: '5rem' }}>
                     <div
                       onClick={() => column.length === 0 && handleEmptyTableauClick(colIndex)}
-                      className="w-20 h-28 rounded-lg border-2 border-dashed border-pink-200 bg-pink-50 mb-1 cursor-pointer hover:border-pink-300 transition-colors"
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+                      className={`w-20 h-28 rounded-lg border-2 border-dashed border-pink-200 bg-pink-50 mb-1 cursor-pointer hover:border-pink-300 transition-colors ${
+                        column.length === 0 && isValidDropZone('tableau', colIndex) ? 'valid-drop' : ''
+                      }`}
                     />
                     {column.map((card, cardIndex) => (
                       <div
                         key={card.id}
                         style={{ marginTop: cardIndex === 0 ? '-7.25rem' : '-5.25rem' }}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+                        className={cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''}
                       >
                         <Card
                           card={card}
                           onClick={() => handleCardClick(card, { type: 'tableau', column: colIndex })}
+                          onDragStart={(e) => handleDragStart(e, card, { type: 'tableau', column: colIndex })}
                           isSelected={selectedCard?.card.id === card.id}
                         />
                       </div>
@@ -627,6 +1048,11 @@
                   </div>
                 ))}
               </div>
+            </div>
+            
+            <div className="mt-4 text-center text-sm text-white bg-white bg-opacity-20 backdrop-blur rounded-xl p-3 slide-up" style={{animationDelay: '0.3s'}}>
+              <p className="font-semibold">💡 Dica: Clique duas vezes em uma carta para movimento automático!</p>
+              <p className="text-xs mt-1 opacity-90">Arraste as cartas ou clique para selecionar e mover</p>
             </div>
           </div>
         </div>
