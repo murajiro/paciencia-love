@@ -159,17 +159,6 @@
       const [draggedCard, setDraggedCard] = useState(null);
       const [lastClickTime, setLastClickTime] = useState(0);
       const [animatingCard, setAnimatingCard] = useState(null);
-
-      // Salva o estado automaticamente sempre que algo mudar
-      useEffect(() => {
-        if (gameState === 'playing') {
-          const gameData = {
-            tableau, foundations, stock, waste, 
-            score, moves, time, difficulty, history
-          };
-          localStorage.setItem('pacienciaAlannaData', JSON.stringify(gameData));
-        }
-      }, [tableau, foundations, stock, waste, score, moves, time, difficulty, history, gameState]);
       
       // Salva o estado sempre que algo importante mudar
       useEffect(() => {
@@ -444,6 +433,11 @@
           moveToFoundation(selectedCard.card, selectedCard.location);
         }
       };
+      const handleEmptyTableauClick = (colIndex) => {
+        if (selectedCard && selectedCard.card.rank === 'K') {
+          handleTableauMove(selectedCard.card, selectedCard.location, colIndex);
+        }
+      };
 
       const handleEmptyTableauClick = (colIndex) => {
         if (selectedCard && selectedCard.card.rank === 'K') {
@@ -714,7 +708,7 @@
             <div className="flex justify-between mb-4 sm:mb-8 px-1">
               <div className="flex gap-2">
                 <div 
-                  onClick={drawCard}
+                  onClick={drawFromStock}
                   className={`w-[13vw] h-[18vw] sm:w-20 sm:h-28 rounded-lg border-2 border-white shadow-lg cursor-pointer flex items-center justify-center transition-all active:scale-95 ${stock.length > 0 ? 'bg-gradient-to-br from-pink-500 to-rose-600' : 'bg-pink-200 opacity-50'}`}
                 >
                   {stock.length > 0 && <span className="text-white opacity-40 text-xl">✦</span>}
