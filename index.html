@@ -157,23 +157,51 @@
       return shuffled;
     };
 
-    function SolitaireGame() {
-      const [gameState, setGameState] = useState('menu');
-      const [difficulty, setDifficulty] = useState('easy');
-      const [tableau, setTableau] = useState([]);
-      const [foundations, setFoundations] = useState([[], [], [], []]);
-      const [stock, setStock] = useState([]);
-      const [waste, setWaste] = useState([]);
+   function SolitaireGame() {
+      // Tenta ler o jogo salvo na memória do navegador
+      const savedGame = JSON.parse(localStorage.getItem('pacienciaAlannaData'));
+
+      // Se existir jogo salvo, usa os dados dele. Se não, usa o padrão (menu, easy, arrays vazios...)
+      const [gameState, setGameState] = useState(savedGame ? 'playing' : 'menu');
+      const [difficulty, setDifficulty] = useState(savedGame?.difficulty || 'easy');
+      const [tableau, setTableau] = useState(savedGame?.tableau || []);
+      const [foundations, setFoundations] = useState(savedGame?.foundations || [[], [], [], []]);
+      const [stock, setStock] = useState(savedGame?.stock || []);
+      const [waste, setWaste] = useState(savedGame?.waste || []);
+      const [score, setScore] = useState(savedGame?.score || 0);
+      const [moves, setMoves] = useState(savedGame?.moves || 0);
+      const [time, setTime] = useState(savedGame?.time || 0);
+      const [history, setHistory] = useState(savedGame?.history || []);
+      
+      // Estados visuais (não precisam ser salvos)
       const [selectedCard, setSelectedCard] = useState(null);
-      const [score, setScore] = useState(0);
-      const [moves, setMoves] = useState(0);
-      const [time, setTime] = useState(0);
-      const [isRunning, setIsRunning] = useState(false);
-      const [history, setHistory] = useState([]);
+      const [isRunning, setIsRunning] = useState(savedGame ? true : false); 
       const [validDropZones, setValidDropZones] = useState([]);
       const [draggedCard, setDraggedCard] = useState(null);
       const [lastClickTime, setLastClickTime] = useState(0);
       const [animatingCard, setAnimatingCard] = useState(null);
+
+      // Salva o estado automaticamente sempre que algo mudar
+      useEffect(() => {
+        if (gameState === 'playing') {
+          const gameData = {
+            tableau, foundations, stock, waste, 
+            score, moves, time, difficulty, history
+          };
+          localStorage.setItem('pacienciaAlannaData', JSON.stringify(gameData));
+        }
+      }, [tableau, foundations, stock, waste, score, moves, time, difficulty, history, gameState]);
+
+      // Salva o estado sempre que algo importante mudar
+      useEffect(() => {
+        if (gameState === 'playing') {
+          const gameData = {
+            tableau, foundations, stock, waste, 
+            score, moves, time, difficulty, history
+          };
+          localStorage.setItem('pacienciaAlannaData', JSON.stringify(gameData));
+        }
+      }, [tableau, foundations, stock, waste, score, moves, time, difficulty, history, gameState]);
 
       useEffect(() => {
         let interval;
@@ -522,6 +550,7 @@
       };
 
       const handleNewGame = () => {
+        localStorage.removeItem('pacienciaAlannaData');
         startGame(difficulty);
       };
 
@@ -674,8 +703,11 @@
               </div>
 
               <button
-                onClick={() => setGameState('menu')}
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                onClick={() => {
+                  localStorage.removeItem('pacienciaAlannaData'); // Adicione aqui
+                  setGameState('menu');
+                }}
+                className="..." // (restante das classes do botão)
               >
                 Jogar Novamente
               </button>
