@@ -9,160 +9,66 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-  /* Performance e animações */
-  * {
-    -webkit-tap-highlight-color: transparent;
-  }
-  
-  @keyframes pulse-glow {
-    0%, 100% { 
-      box-shadow: 0 0 10px rgba(236, 72, 153, 0.5); 
-      border-color: #ec4899 !important; 
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(236, 72, 153, 0.5); border-color: #ec4899 !important; }
+      50% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.8); }
     }
-    50% { 
-      box-shadow: 0 0 20px rgba(236, 72, 153, 0.8); 
-    }
-  }
-  
-  body {
-    touch-action: manipulation;
-    overflow-x: hidden;
-    background-attachment: fixed;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  #root {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .valid-drop {
-    animation: pulse-glow 1.5s ease-in-out infinite;
-    will-change: box-shadow, border-color;
-  }
-  
-  @keyframes card-move {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
-  
-  .card-moving {
-    animation: card-move 0.3s ease;
-    will-change: transform;
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-  
-  .fade-in {
-    animation: fadeIn 0.3s ease;
-  }
-  
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-  
-  .slide-up {
-    animation: slideUp 0.4s ease;
-  }
-
-  /* Responsividade Mobile - Portrait */
-  @media (max-width: 640px) and (orientation: portrait) {
+    /* Adicione/Substitua dentro da tag <style> */
     body {
-      font-size: 14px;
+      touch-action: manipulation; /* Melhora o toque no celular */
+      overflow-x: hidden;
+      background-attachment: fixed;
     }
-    
-    .max-w-4xl {
-      max-width: 100%;
-      padding: 0;
-    }
-    
-    /* Reduz tamanho das cartas */
-    .w-20 { width: 3.2rem !important; }
-    .h-28 { height: 4.5rem !important; }
-    
-    /* Reduz gaps */
-    .gap-3 { gap: 0.35rem !important; }
-    .gap-2 { gap: 0.25rem !important; }
-    
-    /* Reduz padding */
-    .p-4 { padding: 0.5rem !important; }
-    .p-8 { padding: 1rem !important; }
-    
-    /* Ajusta fonte dos naipes */
-    .text-4xl { font-size: 1.75rem !important; }
-    
-    /* Ajusta botões */
-    button {
-      font-size: 0.75rem !important;
-    }
-    
-    .p-2 {
-      padding: 0.35rem !important;
-    }
-    
-    /* Ajusta offsets das cartas no tableau */
-    .tableau-card-offset-first { 
-      margin-top: -4.75rem !important; 
-    }
-    .tableau-card-offset { 
-      margin-top: -3.25rem !important; 
-    }
-    
-    /* Largura das colunas */
-    .tableau-column {
-      width: 3.2rem !important;
-    }
-    
-    /* Esconde textos em telas pequenas */
-    .hide-mobile {
-      display: none !important;
-    }
-    
-    /* Ajusta container de scroll horizontal */
-    .overflow-x-auto {
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    
-    .overflow-x-auto::-webkit-scrollbar {
-      display: none;
-    }
-  }
 
-  /* Responsividade Mobile - Landscape */
-  @media (max-width: 896px) and (orientation: landscape) {
-    .w-20 { width: 3.5rem !important; }
-    .h-28 { height: 5rem !important; }
-    .gap-3 { gap: 0.4rem !important; }
-    .p-4 { padding: 0.6rem !important; }
-  }
-
-  /* Tablets */
-  @media (min-width: 641px) and (max-width: 1024px) {
-    .max-w-4xl {
-      max-width: 95%;
+    #root {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-  }
 
-  /* Performance improvements */
-  .card {
-    will-change: transform;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-  }
-  
-  img {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-</style>
+    /* Ajuste para telas pequenas não cortarem as colunas */
+    @media (max-width: 768px) {
+      .max-w-4xl {
+        max-width: 100%;
+        padding: 0 5px;
+      }
+      /* Diminui levemente o tamanho das cartas se a tela for pequena */
+      .w-20 { width: 4.5rem; }
+      .h-28 { height: 6.3rem; }
+    }
     
+    .valid-drop {
+      animation: pulse-glow 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes card-move {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .card-moving {
+      animation: card-move 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .slide-up {
+      animation: slideUp 0.4s ease;
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -223,69 +129,6 @@
       }
       return shuffled;
     };
-    const Card = React.memo(({ card, onClick, isSelected, onDragStart, style = {} }) => {
-  const isRed = card.color === 'red';
-  const isAnimating = animatingCard === card.id;
-  
-  const getCardPhoto = () => {
-    if (card.rank === 'J') return PHOTOS.jack;
-    if (card.rank === 'Q') return PHOTOS.queen;
-    if (card.rank === 'K') return PHOTOS.king;
-    const suitMap = { '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs', '♠': 'spades' };
-    return PHOTOS[suitMap[card.suit]];
-  };
-
-  const shouldShowPhoto = card.faceUp;
-  const photo = shouldShowPhoto ? getCardPhoto() : null;
-  
-  return (
-    <div
-      onClick={onClick}
-      draggable={card.faceUp}
-      onDragStart={onDragStart}
-      className={`card relative w-20 h-28 rounded-lg flex flex-col items-center justify-center text-sm font-bold cursor-pointer transition-all shadow-md overflow-hidden ${
-        isAnimating ? 'card-moving' : ''
-      } ${
-        card.faceUp
-          ? `bg-white ${isRed ? 'text-red-500' : 'text-gray-800'} ${
-              isSelected ? 'border-4 border-pink-400 shadow-xl scale-105 ring-2 ring-pink-300' : 'border-2 border-gray-300'
-            }`
-          : 'bg-gradient-to-br from-purple-600 via-pink-600 to-rose-600 border-2 border-pink-400'
-      }`}
-      style={{ ...style, zIndex: isSelected ? 999 : 'auto' }}
-    >
-      {card.faceUp ? (
-        <>
-          {photo ? (
-            <>
-              <img 
-                src={photo} 
-                alt={card.rank}
-                className="absolute inset-0 w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute top-1 left-1 bg-white bg-opacity-90 rounded px-1.5 py-0.5 text-xs font-bold shadow-sm">
-                {card.rank}
-              </div>
-              <div className={`absolute top-1 right-1 bg-white bg-opacity-90 rounded px-1 py-0.5 text-base shadow-sm ${isRed ? 'text-red-500' : 'text-gray-800'}`}>
-                {card.suit}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="text-xl font-bold">{card.rank}</div>
-              <div className="text-2xl">{card.suit}</div>
-            </>
-          )}
-        </>
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-white opacity-30 text-3xl">✦</div>
-        </div>
-      )}
-    </div>
-  );
-});
 
     function SolitaireGame() {
       const [gameState, setGameState] = useState('menu');
@@ -333,38 +176,20 @@
       };
 
       const startGame = (diff) => {
-  // Limpa estados anteriores
-  setValidDropZones([]);
-  setSelectedCard(null);
-  setDraggedCard(null);
-  setAnimatingCard(null);
-  
-  setDifficulty(diff);
-  const deck = shuffleDeck(createDeck());
-  setHistory([]);
-  const newTableau = [[], [], [], [], [], [], []];
-  let deckIndex = 0;
-  
-  for (let col = 0; col < 7; col++) {
-    for (let row = 0; row <= col; row++) {
-      newTableau[col].push({
-        ...deck[deckIndex],
-        faceUp: row === col
-      });
-      deckIndex++;
-    }
-  }
-  
-  setTableau(newTableau);
-  setFoundations([[], [], [], []]);
-  setStock(deck.slice(deckIndex));
-  setWaste([]);
-  setScore(0);
-  setMoves(0);
-  setTime(0);
-  setIsRunning(true);
-  setGameState('playing');
-};
+        setDifficulty(diff);
+        const deck = shuffleDeck(createDeck());
+        setHistory([]);
+        const newTableau = [[], [], [], [], [], [], []];
+        let deckIndex = 0;
+        for (let col = 0; col < 7; col++) {
+          for (let row = 0; row <= col; row++) {
+            newTableau[col].push({
+              ...deck[deckIndex],
+              faceUp: row === col
+            });
+            deckIndex++;
+          }
+        }
         
         setTableau(newTableau);
         setFoundations([[], [], [], []]);
@@ -623,13 +448,9 @@
       };
 
       const handleDragEnd = () => {
-  setDraggedCard(null);
-  setValidDropZones([]);
-  // Previne ghost drag em mobile
-  setTimeout(() => {
-    document.body.style.cursor = 'default';
-  }, 100);
-};
+        setDraggedCard(null);
+        setValidDropZones([]);
+      };
 
       const undoMove = () => {
         if (history.length === 0) return;
@@ -964,11 +785,7 @@
               <div className="flex gap-2 overflow-x-auto pb-4">
                {/* Substitua o bloco que começa em tableau.map até o fechamento dele */}
 {tableau.map((column, colIndex) => (
-  <div 
-    key={colIndex} 
-    className="flex-shrink-0 tableau-column" 
-    style={{ width: '5rem', position: 'relative' }}
-  >
+  <div key={colIndex} className="flex-shrink-0" style={{ width: '5rem', position: 'relative' }}>
     <div
       onClick={() => column.length === 0 && handleEmptyTableauClick(colIndex)}
       onDragOver={handleDragOver}
@@ -980,16 +797,15 @@
     {column.map((card, cardIndex) => (
       <div
         key={card.id}
+        /* A CORREÇÃO ESTÁ AQUI: zIndex e position relative */
         style={{ 
           marginTop: cardIndex === 0 ? '-7.25rem' : '-5.25rem',
           position: 'relative',
           zIndex: cardIndex + 1 
         }}
-        className={`${cardIndex === 0 ? 'tableau-card-offset-first' : 'tableau-card-offset'} ${
-          cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''
-        }`}
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+        className={cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''}
       >
         <Card
           card={card}
