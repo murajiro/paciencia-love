@@ -538,20 +538,17 @@
         
         return (
           <div
-            onClick={onClick}
             draggable={card.faceUp}
+            onClick={onClick}
             onDragStart={onDragStart}
             onDragEnd={handleDragEnd}
-            className={`relative w-20 h-28 rounded-lg flex flex-col items-center justify-center text-sm font-bold cursor-pointer transition-all shadow-md overflow-hidden ${
-              isAnimating ? 'card-moving' : ''
-            } ${
-              card.faceUp
-                ? `bg-white ${isRed ? 'text-red-500' : 'text-gray-800'} ${
-                    isSelected ? 'border-4 border-pink-400 shadow-xl scale-105 ring-2 ring-pink-300' : 'border-2 border-gray-300'
-                  }`
-                : 'bg-gradient-to-br from-purple-600 via-pink-600 to-rose-600 border-2 border-pink-400'
-            }`}
-            style={{ ...style, zIndex: isSelected ? 999 : 'auto' }}
+            sm:w-20 significa que em telas maiores (PC) volta a ser o tamanho fixo padrão. */
+            className={`relative w-[12.5vw] h-[17.5vw] sm:w-20 sm:h-28 rounded-lg flex flex-col items-center justify-center text-xs sm:text-sm font-bold cursor-pointer transition-all shadow-md overflow-hidden select-none
+              ${card.faceUp 
+                ? `bg-white ${card.color === 'red' ? 'text-red-500' : 'text-gray-900'} ${isSelected ? 'ring-2 ring-pink-500 scale-105 z-50' : 'border border-gray-300'}` 
+                : 'bg-gradient-to-br from-purple-600 to-rose-500 border border-white/20'}
+            `}
+            style={{ ...style, zIndex: isSelected ? 100 : 'auto' }}
           >
             {card.faceUp ? (
               <>
@@ -817,37 +814,48 @@
               <div className="flex gap-2 overflow-x-auto pb-4">
                {/* Substitua o bloco que começa em tableau.map até o fechamento dele */}
 {tableau.map((column, colIndex) => (
-  <div key={colIndex} className="flex-shrink-0" style={{ width: '5rem', position: 'relative' }}>
-    <div
-      onClick={() => column.length === 0 && handleEmptyTableauClick(colIndex)}
-      onDragOver={handleDragOver}
-      onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
-      className={`w-20 h-28 rounded-lg border-2 border-dashed border-pink-200 bg-pink-50 mb-1 cursor-pointer hover:border-pink-300 transition-colors ${
-        column.length === 0 && isValidDropZone('tableau', colIndex) ? 'valid-drop' : ''
-      }`}
-    />
-    {column.map((card, cardIndex) => (
+  {/* 1. Procure o início do mapeamento do Tableau */}
+<div className="flex gap-1 sm:gap-4 justify-center w-full px-1 sm:px-0 mt-2">
+  {tableau.map((column, colIndex) => (
+    /* 2. Esta DIV abaixo controla a largura de cada uma das 7 colunas */
+    <div key={colIndex} className="relative w-[13vw] sm:w-20 flex flex-col items-center">
+      
+      {/* 3. O quadrado pontilhado (quando a coluna está vazia) */}
       <div
-        key={card.id}
-        /* A CORREÇÃO ESTÁ AQUI: zIndex e position relative */
-        style={{ 
-          marginTop: cardIndex === 0 ? '-7.25rem' : '-5.25rem',
-          position: 'relative',
-          zIndex: cardIndex + 1 
-        }}
+        onClick={() => column.length === 0 && handleEmptyTableauClick(colIndex)}
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
-        className={cardIndex === column.length - 1 && isValidDropZone('tableau', colIndex) ? 'valid-drop rounded-lg' : ''}
-      >
-        <Card
-          card={card}
-          onClick={() => handleCardClick(card, { type: 'tableau', column: colIndex })}
-          onDragStart={(e) => handleDragStart(e, card, { type: 'tableau', column: colIndex })}
-          isSelected={selectedCard?.card.id === card.id}
-        />
-      </div>
-    ))}
-  </div>
+        className={`w-[13vw] h-[18vw] sm:w-20 sm:h-28 rounded-lg border-2 border-dashed border-pink-200 bg-pink-50/50 mb-1 ${
+          column.length === 0 && isValidDropZone('tableau', colIndex) ? 'valid-drop' : ''
+        }`}
+      />
+
+      {/* 4. As cartas dentro da coluna */}
+      {column.map((card, cardIndex) => (
+        <div
+          key={card.id}
+          style={{ 
+            /* marginTop negativa faz as cartas ficarem empilhadas (cascata) */
+            /* -14vw para celulares (vertical) e -5.25rem para computadores */
+            marginTop: cardIndex === 0 ? '-18vw' : '-14vw', 
+            position: 'relative',
+            zIndex: cardIndex + 1 
+          }}
+          className="sm:-mt-20" 
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, { type: 'tableau', column: colIndex })}
+        >
+          <Card
+            card={card}
+            onClick={() => handleCardClick(card, { type: 'tableau', column: colIndex })}
+            onDragStart={(e) => handleDragStart(e, card, { type: 'tableau', column: colIndex })}
+            isSelected={selectedCard?.card.id === card.id}
+          />
+        </div>
+      ))}
+    </div>
+  ))}
+</div>
 ))}
               </div>
             </div>
