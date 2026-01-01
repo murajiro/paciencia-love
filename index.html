@@ -68,6 +68,12 @@
     .slide-up {
       animation: slideUp 0.4s ease;
     }
+    @media (max-width: 640px) {
+  .text-sm { font-size: 0.7rem !important; }
+  .text-xs { font-size: 0.6rem !important; }
+  /* Ajusta o tamanho dos naipes nas cartas para não estourarem */
+  .card-suit { font-size: 1.2rem; }
+}
   </style>
 </head>
 <body>
@@ -814,13 +820,13 @@
               <div className="flex gap-2 overflow-x-auto pb-4">
                {/* Substitua o bloco que começa em tableau.map até o fechamento dele */}
 {tableau.map((column, colIndex) => (
-  {/* 1. Procure o início do mapeamento do Tableau */}
+  {/* LOCALZE ESTE BLOCO NO FINAL DO ARQUIVO E SUBSTITUA */}
+{/* --- SUBSTITUA A PARTIR DAQUI --- */}
 <div className="flex gap-1 sm:gap-4 justify-center w-full px-1 sm:px-0 mt-2">
   {tableau.map((column, colIndex) => (
-    /* 2. Esta DIV abaixo controla a largura de cada uma das 7 colunas */
     <div key={colIndex} className="relative w-[13vw] sm:w-20 flex flex-col items-center">
       
-      {/* 3. O quadrado pontilhado (quando a coluna está vazia) */}
+      {/* Espaço vazio da coluna quando não há cartas */}
       <div
         onClick={() => column.length === 0 && handleEmptyTableauClick(colIndex)}
         onDragOver={handleDragOver}
@@ -830,13 +836,11 @@
         }`}
       />
 
-      {/* 4. As cartas dentro da coluna */}
+      {/* Renderização das cartas da coluna */}
       {column.map((card, cardIndex) => (
         <div
           key={card.id}
           style={{ 
-            /* marginTop negativa faz as cartas ficarem empilhadas (cascata) */
-            /* -14vw para celulares (vertical) e -5.25rem para computadores */
             marginTop: cardIndex === 0 ? '-18vw' : '-14vw', 
             position: 'relative',
             zIndex: cardIndex + 1 
@@ -856,6 +860,7 @@
     </div>
   ))}
 </div>
+{/* --- ATÉ AQUI (Abaixo já deve vir a div da DICA) --- */}
 ))}
               </div>
             </div>
