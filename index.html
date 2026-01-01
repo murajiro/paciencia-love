@@ -433,11 +433,6 @@
           moveToFoundation(selectedCard.card, selectedCard.location);
         }
       };
-      const handleEmptyTableauClick = (colIndex) => {
-        if (selectedCard && selectedCard.card.rank === 'K') {
-          handleTableauMove(selectedCard.card, selectedCard.location, colIndex);
-        }
-      };
 
       const handleEmptyTableauClick = (colIndex) => {
         if (selectedCard && selectedCard.card.rank === 'K') {
@@ -542,7 +537,6 @@
             onClick={onClick}
             onDragStart={onDragStart}
             onDragEnd={handleDragEnd}
-            sm:w-20 significa que em telas maiores (PC) volta a ser o tamanho fixo padrão. */
             className={`relative w-[12.5vw] h-[17.5vw] sm:w-20 sm:h-28 rounded-lg flex flex-col items-center justify-center text-xs sm:text-sm font-bold cursor-pointer transition-all shadow-md overflow-hidden select-none
               ${card.faceUp 
                 ? `bg-white ${card.color === 'red' ? 'text-red-500' : 'text-gray-900'} ${isSelected ? 'ring-2 ring-pink-500 scale-105 z-50' : 'border border-gray-300'}` 
